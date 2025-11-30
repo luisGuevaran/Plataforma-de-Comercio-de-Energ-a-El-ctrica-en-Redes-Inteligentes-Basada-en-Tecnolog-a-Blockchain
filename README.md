@@ -1,66 +1,67 @@
-## Foundry
+# Plataforma de Comercio de Energía P2P con Arquitectura DAO
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Este proyecto implementa un prototipo funcional de un mercado energético descentralizado (Peer-to-Peer) sobre Blockchain. Utiliza un modelo de gobernanza DAO donde el **Operador del Sistema de Distribución (DSO)** recibe automáticamente una tarifa de red (`gridFee`) por cada transacción liquidada en el contrato inteligente.
 
-Foundry consists of:
+![Dashboard Principal](screenshots/dashboard.png)
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Características Principales
 
-## Documentation
+* **Arquitectura Descentralizada:** Lógica de negocio ejecutada 100% On-Chain (EVM).
+* **Modelo DAO/DSO:** Integración financiera de la capa física mediante tarifas de red automatizadas.
+* **Gestión de Identidad Simulada:** Sistema de Login mapeado a llaves privadas de Ethereum.
+* **Auditoría Transparente:** Libro mayor (Ledger) público con desglose de pagos en tiempo real.
+* **Interfaz Profesional:** DApp desarrollada en React para una experiencia de usuario fluida.
 
-https://book.getfoundry.sh/
+## Stack Tecnológico
 
-## Usage
+* **Blockchain:** Foundry (Anvil & Forge) - Solidity v0.8.13.
+* **Frontend:** React + Vite.
+* **Web3 Integration:** Ethers.js v6.
+* **Conectividad Remota:** Túneles RPC (Pinggy/Ngrok) para simulación WAN.
 
-### Build
+## Arquitectura del Sistema
 
-```shell
-$ forge build
-```
+El sistema separa la lógica financiera (On-Chain) de la interfaz de usuario (Off-Chain), conectadas mediante túneles seguros.
 
-### Test
+![Arquitectura](screenshots/arquitectura.png)
 
-```shell
-$ forge test
-```
+## Guía de Instalación y Ejecución
 
-### Format
+Sigue estos pasos para levantar el entorno de simulación local o remoto.
 
-```shell
-$ forge fmt
-```
+### Prerrequisitos
+* Node.js v20+
+* Foundry (Forge & Anvil)
+* Git
 
-### Gas Snapshots
+### 1. Iniciar la Blockchain (Terminal 1)
+```bash
+# Inicia el nodo local permitiendo conexiones externas (CORS)
+anvil --host 0.0.0.0 --allow-origin '*'
 
-```shell
-$ forge snapshot
-```
+# Exporta la llave privada del Admin (Cuenta 0 de Anvil)
+export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
-### Anvil
+# Despliega el contrato con los parámetros del DSO y Tarifa (3%)
+forge script script/Deploy.s.sol --rpc-url [http://127.0.0.1:8545](http://127.0.0.1:8545) --broadcast
 
-```shell
-$ anvil
-```
+### 2. Desplegar el Contrato (Terminal 2)
+# Exporta la llave privada del Admin (Cuenta 0 de Anvil)
+export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
-### Deploy
+# Despliega el contrato con los parámetros del DSO y Tarifa (3%)
+forge script script/Deploy.s.sol --rpc-url [http://127.0.0.1:8545](http://127.0.0.1:8545) --broadcast
+#Nota: Copia la Contract Address resultante para el siguiente paso.
+### 3. Configurar el Frontend
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+#Edita el archivo interfaz-mercado/src/constants.js:
+export const CONTRACT_ADDRESS = "PEGAR_DIRECCION_AQUI";
+export const RPC_URL = "[http://127.0.0.1:8545](http://127.0.0.1:8545)"; // O tu URL de túnel si es remoto
 
-### Cast
+### 4. Iniciar la Interfaz Web (Terminal 3)
 
-```shell
-$ cast <subcommand>
-```
+Bash
 
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+cd interfaz-mercado
+npm install
+npm run dev
