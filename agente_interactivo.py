@@ -31,12 +31,15 @@ except FileNotFoundError:
 contrato = web3.eth.contract(address=DIRECCION_CONTRATO, abi=abi)
 
 # --- 3. DEFINIR ACTORES (Tus identidades) ---
-# Usaremos las dos primeras cuentas de Anvil como tus "billeteras"
 try:
-    prosumidor_address = web3.eth.accounts[0] # Cuenta #0 de Anvil
+    # PROSUMIDOR (Cuenta #0 de Anvil)
+   # PROSUMIDOR (Cuenta #0 de Anvil - Hardcoded)
+    prosumidor_address = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     prosumidor_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
-    consumidor_address = web3.eth.accounts[1] # Cuenta #1 de Anvil
+    # CONSUMIDOR (Cuenta #1 de Anvil - Hardcoded)
+    # CONSUMIDOR (Cuenta #1 de Anvil - Hardcoded)
+    consumidor_address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
     consumidor_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 except IndexError:
     print("Error: Anvil no devolvió cuentas. ¿Está corriendo Anvil?")
@@ -64,9 +67,10 @@ def publicar_oferta_interactiva():
         })
         tx_firmada = web3.eth.account.sign_transaction(tx, private_key=prosumidor_key)
         tx_hash = web3.eth.send_raw_transaction(tx_firmada.raw_transaction)
+        
+        print(f"  -> Transacción enviada. Hash: {tx_hash.hex()}")
         recibo = web3.eth.wait_for_transaction_receipt(tx_hash)
         
-        # Leer el ID de la oferta desde el evento (¡más robusto!)
         logs = contrato.events.OfertaPublicada().process_receipt(recibo)
         id_oferta = logs[0]['args']['id']
         print(f"¡Éxito! Oferta publicada con ID: {id_oferta}")
@@ -98,7 +102,9 @@ def comprar_energia_interactiva():
     costo_total = kwh_a_comprar * precio
     print(f"\n[CONSUMIDOR] Comprando {kwh_a_comprar} kWh de la oferta {id_oferta}...")
     print(f"  Costo total calculado: {costo_total} wei")
-
+    # --- ¡¡AÑADE ESTA LÍNEA!! ---
+    print(f"DEBUG: Python está usando esta llave: {consumidor_key}")
+    # --- FIN DE LA LÍNEA DE PRUEBA ---
     try:
         tx = contrato.functions.comprarEnergia(id_oferta, kwh_a_comprar).build_transaction({
             'from': consumidor_address,
@@ -107,6 +113,8 @@ def comprar_energia_interactiva():
         })
         tx_firmada = web3.eth.account.sign_transaction(tx, private_key=consumidor_key)
         tx_hash = web3.eth.send_raw_transaction(tx_firmada.raw_transaction)
+
+        print(f"  -> Transacción enviada. Hash: {tx_hash.hex()}")
         recibo = web3.eth.wait_for_transaction_receipt(tx_hash)
         print("¡Éxito! Energía comprada.")
 
@@ -122,7 +130,6 @@ def ver_estado_oferta():
 
     print(f"\nBuscando estado de la Oferta {id_oferta}...")
     try:
-        # (id, prosumidor, kwh, precio, activa)
         datos_oferta = contrato.functions.ofertas(id_oferta).call()
         print("  --- DATOS DE LA OFERTA ---")
         print(f"  ID: {datos_oferta[0]}")
@@ -134,6 +141,56 @@ def ver_estado_oferta():
     except Exception as e:
         print(f"Error: No se pudo leer la oferta {id_oferta}. ¿Estás seguro que existe?")
 
+
+# --- (((( FUNCIÓN ACTUALIZADA )))) ---
+def ver_historial_transacciones():
+    """
+    Escanea la blockchain en busca de todos los eventos emitidos por
+    nuestro contrato.
+    """
+    print("\n--- 📖 HISTORIAL DEL MERCADO (REGISTRO PÚBLICO) ---")
+    
+    # 1. Buscar historial de OFERTAS PUBLICADAS
+    print("\n--- Historial de Ofertas Publicadas ---")
+    try:
+        event_filter_ofertas = contrato.events.OfertaPublicada.create_filter(from_block=0)
+        todas_las_ofertas = event_filter_ofertas.get_all_entries()
+        
+        if not todas_las_ofertas:
+            print("  No se han publicado ofertas.")
+        else:
+            for evento in todas_las_ofertas:
+                args = evento['args']
+                print(f"  [Bloque {evento['blockNumber']}] Prosumidor {args['prosumidor']} publicó Oferta ID {args['id']}")
+                print(f"    -> Detalles: {args['kwh']} kWh a {args['precioPorKwh']} wei/kWh")
+                print(f"    -> TxHash: {evento['transactionHash'].hex()}")
+
+    except Exception as e:
+        print(f"  Error al buscar historial de ofertas: {e}")
+
+    # 2. Buscar historial de COMPRAS REALIZADAS (CON DETALLES FINANCIEROS)
+    print("\n--- Historial de Compras Realizadas ---")
+    try:
+        event_filter_compras = contrato.events.EnergiaComprada.create_filter(from_block=0)
+        todas_las_compras = event_filter_compras.get_all_entries()
+
+        if not todas_las_compras:
+            print("  No se han realizado compras.")
+        else:
+            for evento in todas_las_compras:
+                args = evento['args']
+                # Imprimir los nuevos detalles financieros
+                print(f"  [Bloque {evento['blockNumber']}] Transacción de Compra (Oferta ID {args['idOferta']})")
+                print(f"    -> Consumidor (GASTÓ): {args['consumidor']} pagó {args['costoTotal']} wei")
+                print(f"    -> Prosumidor (GANÓ): {args['pagoProsumidor']} wei")
+                print(f"    -> DSO (GANÓ TARIFA): {args['gridFee']} wei")
+                print(f"    -> TxHash: {evento['transactionHash'].hex()}")
+    
+    except Exception as e:
+        print(f"  Error al buscar historial de compras: {e}")
+# --- (((( FIN DE LA FUNCIÓN ACTUALIZADA )))) ---
+
+
 # --- 5. MENÚ PRINCIPAL ---
 
 def menu_principal():
@@ -143,6 +200,7 @@ def menu_principal():
         print("  [1] Publicar Oferta (Actuar como Prosumidor)")
         print("  [2] Comprar Energía (Actuar como Consumidor)")
         print("  [3] Ver estado de una Oferta")
+        print("  [4] Ver Historial de Transacciones (El 'Registro')")
         print("  [S] Salir")
         
         opcion = input("> ").strip().lower()
@@ -153,6 +211,8 @@ def menu_principal():
             comprar_energia_interactiva()
         elif opcion == '3':
             ver_estado_oferta()
+        elif opcion == '4':
+            ver_historial_transacciones()
         elif opcion == 's':
             print("Saliendo. ¡Adiós!")
             break

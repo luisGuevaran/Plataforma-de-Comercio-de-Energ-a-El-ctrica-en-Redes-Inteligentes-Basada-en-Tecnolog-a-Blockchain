@@ -12,3 +12,7 @@ docs/
 
 # Dotenv file
 .env
+interfaz-mercado/node_modules
+interfaz-mercado/dist
+out/
+cache/

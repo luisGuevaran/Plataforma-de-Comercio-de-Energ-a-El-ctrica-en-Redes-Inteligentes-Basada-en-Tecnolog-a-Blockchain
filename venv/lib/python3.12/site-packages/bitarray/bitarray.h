@@ -4,7 +4,7 @@
 
    Author: Ilan Schnell
 */
-#define BITARRAY_VERSION  "3.7.2"
+#define BITARRAY_VERSION  "3.8.0"
 
 #ifdef STDC_HEADERS
 #  include <stddef.h>
@@ -52,6 +52,8 @@ typedef struct {
 /* --- bit-endianness --- */
 #define ENDIAN_LITTLE  0
 #define ENDIAN_BIG     1
+/* default bit-endianness */
+#define ENDIAN_DEFAULT  ENDIAN_BIG
 
 #define IS_LE(self)  ((self)->endian == ENDIAN_LITTLE)
 #define IS_BE(self)  ((self)->endian == ENDIAN_BIG)
